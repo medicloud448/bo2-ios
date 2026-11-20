@@ -83,7 +83,7 @@ static uint32_t ClientState(void *handle, BOOL mp) {
     return value;
 }
 
-static void QueueConnect(void *handle, void (*queue)(const char *), NSString command, BOOL mp, unsigned retries) {
+static void QueueConnect(void *handle, void (*queue)(const char *), NSString *command, BOOL mp, unsigned retries) {
     uint32_t before=ClientState(handle,mp);
     queue(command.UTF8String);
     if (!retries || before==UINT32_MAX) return;
@@ -97,13 +97,13 @@ static void QueueConnect(void *handle, void (*queue)(const char *), NSString com
 static void ConfigureRuntime(NSString *mode) {
     if (UIScreen.mainScreen.maximumFramesPerSecond > 60) setenv("BO2_PUMP_US", "1000", 1);
     NSDictionary *settings = @{
-        @"BO2_WINDOW": @"1", @"BO2_WINDOW_HOLD": @"0", @"BO2_STALL_ABORT": @"0",
-        @"BO2_MAX_IMPORTS": @"0", @"BO2_TR_CACHE": @"0", @"BO2_MUTE": @"0", @"BO2_XAUDIO": @"1",
-        @"BO2_DEPTH_BIAS": @"1", @"BO2_DEPTH_DSV": @"1", @"BO2_SV_INLINE": @"1",
-        @"BO2_NO_FORCE_MAP": @"1", @"BO2_MSGB": @"150", @"BO2_VB_RESIDENT": @"1",
-        @"BO2_VPX_NATIVE": @"1", @"BO2_VPX_REPLACE": @"1", @"BO2_W32_FAST": @"1",
-        @"BO2_PREEMPT_W": @"20000", @"BO2_CS_COOP": @"1", @"BO2_RR_FAIR": @"1",
-        @"BO2_REAL_MUTEX": @"1", @"BO2_HOST_THREADS": @"jq,snd,snddec,srv,backend", @"BO2_HW_ATOMICS": @"2"
+        @"BO2_WINDOW":@"1", @"BO2_WINDOW_HOLD":@"0", @"BO2_STALL_ABORT":@"0",
+        @"BO2_MAX_IMPORTS":@"0", @"BO2_TR_CACHE":@"0", @"BO2_MUTE":@"0", @"BO2_XAUDIO":@"1",
+        @"BO2_DEPTH_BIAS":@"1", @"BO2_DEPTH_DSV":@"1", @"BO2_SV_INLINE":@"1",
+        @"BO2_NO_FORCE_MAP":@"1", @"BO2_MSGB":@"150", @"BO2_VB_RESIDENT":@"1",
+        @"BO2_VPX_NATIVE":@"1", @"BO2_VPX_REPLACE":@"1", @"BO2_W32_FAST":@"1",
+        @"BO2_PREEMPT_W":@"20000", @"BO2_CS_COOP":@"1", @"BO2_RR_FAIR":@"1",
+        @"BO2_REAL_MUTEX":@"1", @"BO2_HOST_THREADS":@"jq,snd,snddec,srv,backend", @"BO2_HW_ATOMICS":@"2"
     };
     for (NSString *key in settings) setenv(key.UTF8String, [settings[key] UTF8String], 1);
     if ([mode isEqualToString:@"sps"]) {
@@ -120,16 +120,6 @@ static NSURL *GameDirectory(NSError **error) {
     NSURL *support = [files URLForDirectory:NSApplicationSupportDirectory inDomain:NSUserDomainMask
                                           appropriateForURL:nil create:YES error:error];
     if (!support) return nil;
-
-    NSURL *documents = [files URLForDirectory:NSDocumentDirectory inDomain:NSUserDomainMask
-                                     appropriateForURL:nil create:NO error:nil];
-    if (documents) {
-        NSURL *manualAssets = [documents URLByAppendingPathComponent:@"Game"];
-        if ([manualAssets checkResourceIsReachableAndReturnError:nil]) {
-            assets = manualAssets;
-        }
-    }
-
     if (![assets checkResourceIsReachableAndReturnError:nil]) {
         assets = [support URLByAppendingPathComponent:@"BO2GameFiles"];
         if (![assets checkResourceIsReachableAndReturnError:nil]) {
