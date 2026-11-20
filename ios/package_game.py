@@ -38,10 +38,8 @@ def package(root, game_zip, out, team, work, bundle_id, receipt, library_origin,
     root, out, work = root.resolve(), out.resolve(), work.resolve()
     src = Path(__file__).resolve().parent
 
-    # Require the linked game binary and generated memory sections of every listed mode before packaging.
     mode_dirs = {mode: (lan_root if lan_root and mode in ("mps", "zms") else root / "device") / mode for mode in MODES}
 
-    # A mode joins private servers when its link left the converted memory sections next to the framework.
     private = {mode: mode != "sps" and (bool(lan_root) or (mode_dirs[mode] / "pluto_pe_sections.bin").is_file()) for mode in MODES}
 
     for mode, mode_dir in mode_dirs.items():
@@ -110,7 +108,6 @@ def package(root, game_zip, out, team, work, bundle_id, receipt, library_origin,
         app.parent.mkdir()
         shutil.move(str(stage / "Derived/Build/Products/Release-iphoneos/BlackOpsII.app"), app)
 
-        # Use the exact identity/profile selected by Xcode, including personal-team signing.
         if not unsigned:
             details = subprocess.run(["codesign", "-dvvv", str(app)], capture_output=True, text=True, check=True).stderr
             identity = next(line.partition("=")[2] for line in details.splitlines() if line.startswith("Authority=Apple Development:"))
@@ -121,9 +118,7 @@ def package(root, game_zip, out, team, work, bundle_id, receipt, library_origin,
         info_path = app / "Info.plist"
         info = plistlib.loads(info_path.read_bytes())
         info["NSLocalNetworkUsageDescription"] = "Connect to a private game server on your local network."
-        # Without this an iPhone shows at most 60 frames a second, whatever the game's own limit is.
         info["CADisableMinimumFrameDurationOnPhone"] = True
-        # Enable manual file drop via iOS Files app
         info["UIFileSharingEnabled"] = True
         info["LSSupportsOpeningDocumentsInPlace"] = True
 
@@ -142,7 +137,6 @@ def package(root, game_zip, out, team, work, bundle_id, receipt, library_origin,
         shutil.copyfile(src / "SteamServices/Content/ZSTD-LICENSE", notices / "ZSTD-LICENSE")
         shutil.copyfile(src / "CYPORT-LICENSE", notices / "CYPORT-LICENSE")
 
-        # Without a receipt the app holds no account: every mode then starts on the signed-in Steam session.
         if receipt: shutil.copyfile(receipt, app / "SteamOwnership.plist")
 
         frameworks = app / "Frameworks"
@@ -151,12 +145,12 @@ def package(root, game_zip, out, team, work, bundle_id, receipt, library_origin,
             lib = frameworks / (mode + ".framework")
             shutil.copytree(mode_dirs[mode] / lib.name, lib)
             if not unsigned: command("codesign", "--force", "--sign", identity, lib)
-
-        dest = app / "Modes" / mode
-        dest.mkdir(parents=True)
-        shutil.copyfile(root / "conversion/boot_cache" / mode / "pe_sections.bin", dest / "pe_sections.bin")
-        if private[mode]:
-            shutil.copyfile(mode_dirs[mode] / "pluto_pe_sections.bin", dest / "pluto_pe_sections.bin")
+            
+            dest = app / "Modes" / mode
+            dest.mkdir(parents=True)
+            shutil.copyfile(root / "conversion/boot_cache" / mode / "pe_sections.bin", dest / "pe_sections.bin")
+            if private[mode]:
+                shutil.copyfile(mode_dirs[mode] / "pluto_pe_sections.bin", dest / "pluto_pe_sections.bin")
 
         shaders = root / "BO2Shaders.metallib"
         if shaders.is_file():
